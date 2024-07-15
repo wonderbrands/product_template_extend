@@ -43,12 +43,8 @@ class ProductProduct(models.Model):
 
     @api.depends('bill_list')
     def _total_combos(self):
-        _logger.info("\n\n")
-        _logger.info(self.bill_list.id)
         if self.bom_count > 0 and self.bill_list:
             bom_line_ids = self.env['mrp.bom.line'].search([('bom_id', '=', self.bill_list.id)])
-            _logger.info(bom_line_ids)
-            _logger.info("\n\n")
             for each in bom_line_ids:
                 combo_calculation = each.combo_qty
                 self.combo_qty = combo_calculation
@@ -75,16 +71,18 @@ class ProductProduct(models.Model):
             # Obtener las líneas de la lista de materiales (BOM)
             bom_line_ids = self.env['mrp.bom.line'].search([('bom_id', '=', self.bill_list.id)])
             product_ids = bom_line_ids.mapped('product_id')
+            qty_products = bom_line_ids.mapped('product_qty')
 
-            for product in product_ids:
-                # Peso
-                weight = product.packing_weight
+            for index, product in enumerate(product_ids):
+                # Peso    Se multiplica por el numero de paquetes
+                weight = product.packing_weight * qty_products[index]
                 weight_measures.append(weight)
                 # Largo
                 length = product.packing_length
                 length_measures.append(length)
-                # Alto
-                height = product.packing_height
+                # Alto    Se multiplica por el numero de paquetes, solo en esta dimension
+                # teniendo en cuenta que se colocan uno sobre otro
+                height = product.packing_height * qty_products[index]
                 height_measures.append(height)
                 # Ancho
                 width = product.packing_width
@@ -107,7 +105,7 @@ class ProductProduct(models.Model):
                 sum_width = 0
 
             self.calculated_volume = (max_length * max_height * sum_width) / 1000
-            self.calculated_weight = sum(weight_measures) if weight_measures else 0
+            self.calculated_weight = (sum(weight_measures)) if weight_measures else 0
             self.is_calculated_combo = True
         else:
             self.is_calculated_combo = False
