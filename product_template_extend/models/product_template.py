@@ -62,6 +62,9 @@ class ProductTemplate(models.Model):
     end_period = fields.Char(string='Fin del periodo',
                              help='Fecha/Mes en que finaliza una estación o un Periodo para un SKU')
 
+    # Lista de materiales
+    bill_list = fields.Many2one('mrp.bom', 'Lista de materiales')
+
     # Function that print the volume of product
     @api.depends('product_width', 'product_height', 'product_length')
     def _volumen(self):

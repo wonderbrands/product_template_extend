@@ -61,6 +61,14 @@
                   </div>
               </group>
           </xpath>
+
+          <!-- Agrega campos a la pagina Información General -->
+          <xpath expr="//group[@name='group_standard_price']" position="after">
+              <group string="Lista de materiales" name="lista_materiales">
+                <field name="bill_list"/>
+              </group>
+          </xpath>
+
           <!-- Agrega campos a la pagina Información General -->
           <xpath expr="//group[@name='group_standard_price']" position="after">
               <group string="Comercial" name="comercial">
