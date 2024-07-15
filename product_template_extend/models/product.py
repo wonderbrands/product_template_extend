@@ -1,4 +1,8 @@
 from odoo import models, fields, api, _
+import logging
+
+logging.basicConfig(filename='product_template_extend.log', level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+_logger = logging.getLogger(__name__)
 
 
 class ProductProduct(models.Model):
@@ -11,13 +15,13 @@ class ProductProduct(models.Model):
                             compute='_is_kit')
     component_list = fields.Boolean(string='Lista de componentes',
                                     help='Este campo estará marcado si el SKU es combo o tiene lista de materiales',
-                                    compute='_id_yuju_kit')
+                                    compute='_id_bill_list')
     combo_qty = fields.Float(string='Total combos',
                              help='Muestra la cantidad de combos que se pueden realizar con la lista de materiales actual',
                              compute='_total_combos')
 
     # Stock
-    stock_real = fields.Integer(string="Stock Real", help='muestral el stock real')
+    stock_real = fields.Integer(string="Stock Real", help='muestra el stock real')
 
     # Calculated measures
     is_calculated_combo = fields.Boolean(string='Es combo', compute='calculated_measures')
@@ -28,7 +32,7 @@ class ProductProduct(models.Model):
 
 
     # Function that evaluates if product is combo or kit
-    @api.depends('is_kit')
+    @api.depends('bom_count')
     def _is_kit(self):
         self.ensure_one()
         #_logger = logging.getLogger(__name__)
@@ -37,25 +41,28 @@ class ProductProduct(models.Model):
         else:
             self.is_kit = False
 
-    #@api.depends('bom_count', 'yuju_kit')
+    @api.depends('bill_list')
     def _total_combos(self):
-        if self.bom_count > 0 and self.yuju_kit:
-            bom_line_ids = self.env['mrp.bom.line'].search([('bom_id', '=', self.yuju_kit.id)])
+        _logger.info("\n\n")
+        _logger.info(self.bill_list.id)
+        if self.bom_count > 0 and self.bill_list:
+            bom_line_ids = self.env['mrp.bom.line'].search([('bom_id', '=', self.bill_list.id)])
+            _logger.info(bom_line_ids)
+            _logger.info("\n\n")
             for each in bom_line_ids:
                 combo_calculation = each.combo_qty
                 self.combo_qty = combo_calculation
         else:
             self.combo_qty = 0.0
 
-    #@api.depends('bom_count', 'yuju_kit')
-    def _id_yuju_kit(self):
-        bom_line_ids = self.env['mrp.bom.line'].search([('bom_id', '=', self.yuju_kit.id)])
+
+    def _id_bill_list(self):
+        bom_line_ids = self.env['mrp.bom.line'].search([('bom_id', '=', self.bill_list.id)])
         self.component_list = True
         self.sub_product_line_ids = bom_line_ids
 
 
     # Calcula el peso y volumen para combos
-    #@api.depends('bom_count', 'yuju_kit')
     #@api.depends('length', 'width', 'height', 'weight')
     def calculated_measures(self):
         if self.bom_count > 0:
@@ -66,7 +73,7 @@ class ProductProduct(models.Model):
             volume_calculation = []
 
             # Obtener las líneas de la lista de materiales (BOM)
-            bom_line_ids = self.env['mrp.bom.line'].search([('bom_id', '=', self.yuju_kit.id)])
+            bom_line_ids = self.env['mrp.bom.line'].search([('bom_id', '=', self.bill_list.id)])
             product_ids = bom_line_ids.mapped('product_id')
 
             for product in product_ids:
